@@ -4,16 +4,25 @@ from typing import List
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from .utils.prompt import ClientMessage, convert_to_openai_messages
-from .utils.tools import get_current_weather
+from .utils.tools import get_current_weather, evaluate_rizz, generate_rizz_image, transcribe_audio, simulate_date, generate_speech
 
 
 load_dotenv(".env.local")
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
@@ -26,6 +35,10 @@ class Request(BaseModel):
 
 available_tools = {
     "get_current_weather": get_current_weather,
+    "evaluate_rizz": evaluate_rizz,
+    "generate_rizz_image": generate_rizz_image,
+    "transcribe_audio": transcribe_audio,
+    "simulate_date": simulate_date,
 }
 
 def do_stream(messages: List[ChatCompletionMessageParam]):
@@ -51,6 +64,86 @@ def do_stream(messages: List[ChatCompletionMessageParam]):
                         },
                     },
                     "required": ["latitude", "longitude"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "evaluate_rizz",
+                "description": "Evaluate a flirting line or message and provide feedback on rizz skills",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "The flirting line or message to evaluate",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "The context in which the line was used (e.g., 'dating app', 'bar', 'casual conversation')",
+                        },
+                    },
+                    "required": ["message"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "generate_rizz_image",
+                "description": "Generate an image visualizing a flirting scenario or pickup line",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                            "type": "string",
+                            "description": "The flirting scenario or pickup line to visualize",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "The context of the situation (e.g., 'dating app', 'bar', 'casual conversation')",
+                        },
+                    },
+                    "required": ["prompt"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "transcribe_audio",
+                "description": "Transcribe spoken audio to text",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "audio_url": {
+                            "type": "string",
+                            "description": "URL to the audio file",
+                        },
+                    },
+                    "required": ["audio_url"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "simulate_date",
+                "description": "Simulates a date scenario based on the user's approach or conversation starter",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "The user's approach or conversation starter",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "The dating context (e.g., 'restaurant', 'coffee shop', 'park')",
+                        },
+                    },
+                    "required": ["message"],
                 },
             },
         }]
@@ -84,6 +177,86 @@ def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'dat
                         },
                     },
                     "required": ["latitude", "longitude"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "evaluate_rizz",
+                "description": "Evaluate a flirting line or message and provide feedback on rizz skills",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "The flirting line or message to evaluate",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "The context in which the line was used (e.g., 'dating app', 'bar', 'casual conversation')",
+                        },
+                    },
+                    "required": ["message"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "generate_rizz_image",
+                "description": "Generate an image visualizing a flirting scenario or pickup line",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                            "type": "string",
+                            "description": "The flirting scenario or pickup line to visualize",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "The context of the situation (e.g., 'dating app', 'bar', 'casual conversation')",
+                        },
+                    },
+                    "required": ["prompt"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "transcribe_audio",
+                "description": "Transcribe spoken audio to text",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "audio_url": {
+                            "type": "string",
+                            "description": "URL to the audio file",
+                        },
+                    },
+                    "required": ["audio_url"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "simulate_date",
+                "description": "Simulates a date scenario based on the user's approach or conversation starter",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "The user's approach or conversation starter",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "The dating context (e.g., 'restaurant', 'coffee shop', 'park')",
+                        },
+                    },
+                    "required": ["message"],
                 },
             },
         }]
@@ -141,8 +314,6 @@ def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'dat
             )
 
 
-
-
 @app.post("/api/chat")
 async def handle_chat_data(request: Request, protocol: str = Query('data')):
     messages = request.messages
@@ -151,3 +322,36 @@ async def handle_chat_data(request: Request, protocol: str = Query('data')):
     response = StreamingResponse(stream_text(openai_messages, protocol))
     response.headers['x-vercel-ai-data-stream'] = 'v1'
     return response
+
+
+@app.post("/api/upload-audio")
+async def upload_audio(file: UploadFile = File(...)):
+    # Create temp directory if it doesn't exist
+    os.makedirs("temp", exist_ok=True)
+    
+    # Save the uploaded file
+    file_path = f"temp/{file.filename}"
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+    
+    # Transcribe the audio
+    with open(file_path, "rb") as audio_file:
+        transcription = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+    
+    # Clean up
+    os.remove(file_path)
+    
+    return {"text": transcription.text}
+
+class TextToSpeechRequest(BaseModel):
+    text: str
+    voice: str = "nova"  # Default voice
+
+@app.post("/api/text-to-speech")
+async def text_to_speech(request: TextToSpeechRequest):
+    """Generate speech from text using OpenAI's Text-to-Speech API"""
+    result = generate_speech(text=request.text, voice=request.voice)
+    return result

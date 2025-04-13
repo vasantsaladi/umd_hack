@@ -1,24 +1,38 @@
 "use client";
 
 import { Button } from "./ui/button";
-import { GitIcon, VercelIcon } from "./icons";
+import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 
 export const Navbar = () => {
   return (
-    <div className="p-2 flex flex-row gap-2 justify-between">
-      <Link href="https://github.com/vercel-labs/ai-sdk-preview-python-streaming">
-        <Button variant="outline">
-          <GitIcon /> View Source Code
-        </Button>
-      </Link>
+    <div className="p-3 flex flex-row gap-2 justify-between items-center border-b border-gray-800/30">
+      <div className="flex items-center gap-2">
+        <HeartIcon className="text-red-500" size={20} />
+        <span className="font-bold text-lg bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent hidden md:inline">
+          Rizz Lab
+        </span>
+      </div>
 
-      <Link href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-python-streaming&env=OPENAI_API_KEY%2CVERCEL_FORCE_PYTHON_STREAMING&envDescription=API+keys+needed+for+application&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-python-streaming%2Fblob%2Fmain%2F.env.example&teamSlug=vercel-labs">
-        <Button>
-          <VercelIcon />
-          Deploy with Vercel
-        </Button>
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link href="/about">
+          <Button
+            variant="ghost"
+            className="text-sm hover:bg-pink-500/10 hover:text-pink-400 transition-colors"
+          >
+            About
+          </Button>
+        </Link>
+
+        <Link href="/tips">
+          <Button
+            variant="ghost"
+            className="text-sm hover:bg-purple-500/10 hover:text-purple-400 transition-colors"
+          >
+            Rizz Tips
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 };

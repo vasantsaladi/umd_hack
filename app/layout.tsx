@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 
 export const metadata = {
-  title: "AI SDK Python Streaming Preview",
+  title: "Rizz Lab - Train Your Flirting Skills",
   description:
-    "Use the Data Stream Protocol to stream chat completions from a Python endpoint (FastAPI) and display them using the useChat hook in your Next.js application.",
+    "Improve your rizz with Rizz Lab. Get real-time AI feedback on your pickup lines and flirting messages. Level up your game!",
   openGraph: {
     images: [
       {
-        url: "/og?title=AI SDK Python Streaming Preview",
+        url: "/og?title=Rizz Lab - Train Your Flirting Skills",
       },
     ],
   },
@@ -19,7 +19,7 @@ export const metadata = {
     card: "summary_large_image",
     images: [
       {
-        url: "/og?title=AI SDK Python Streaming Preview",
+        url: "/og?title=Rizz Lab - Train Your Flirting Skills",
       },
     ],
   },

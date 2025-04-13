@@ -8,6 +8,9 @@ import { Markdown } from "./markdown";
 import { PreviewAttachment } from "./preview-attachment";
 import { cn } from "@/lib/utils";
 import { Weather } from "./weather";
+import { RizzEvaluation } from "./rizz-evaluation";
+import { RizzImage } from "./rizz-image";
+import { DateSimulation } from "./date-simulation";
 
 export const PreviewMessage = ({
   message,
@@ -25,7 +28,7 @@ export const PreviewMessage = ({
     >
       <div
         className={cn(
-          "group-data-[role=user]/message:bg-primary group-data-[role=user]/message:text-primary-foreground flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl",
+          "group-data-[role=user]/message:bg-primary group-data-[role=user]/message:text-primary-foreground flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl"
         )}
       >
         {message.role === "assistant" && (
@@ -53,6 +56,27 @@ export const PreviewMessage = ({
                     <div key={toolCallId}>
                       {toolName === "get_current_weather" ? (
                         <Weather weatherAtLocation={result} />
+                      ) : toolName === "evaluate_rizz" ? (
+                        <RizzEvaluation rizzResult={result} />
+                      ) : toolName === "generate_rizz_image" ? (
+                        <RizzImage
+                          imageUrl={result.url}
+                          prompt={result.prompt}
+                          context={result.context}
+                        />
+                      ) : toolName === "simulate_date" ? (
+                        <DateSimulation simulationResult={result} />
+                      ) : toolName === "transcribe_audio" ? (
+                        <div className="bg-gray-800/40 border border-gray-700/40 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">
+                              Transcription
+                            </span>
+                          </div>
+                          <p className="text-gray-300 italic">
+                            "{result.text}"
+                          </p>
+                        </div>
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}
@@ -63,10 +87,29 @@ export const PreviewMessage = ({
                   <div
                     key={toolCallId}
                     className={cn({
-                      skeleton: ["get_current_weather"].includes(toolName),
+                      skeleton: [
+                        "get_current_weather",
+                        "evaluate_rizz",
+                        "generate_rizz_image",
+                        "simulate_date",
+                        "transcribe_audio",
+                      ].includes(toolName),
                     })}
                   >
-                    {toolName === "get_current_weather" ? <Weather /> : null}
+                    {toolName === "get_current_weather" ? (
+                      <Weather />
+                    ) : toolName === "evaluate_rizz" ? (
+                      <RizzEvaluation isLoading={true} />
+                    ) : toolName === "generate_rizz_image" ? (
+                      <RizzImage isLoading={true} imageUrl="" prompt="" />
+                    ) : toolName === "simulate_date" ? (
+                      <DateSimulation isLoading={true} />
+                    ) : toolName === "transcribe_audio" ? (
+                      <div className="bg-background/30 rounded-lg border border-border p-4 animate-pulse">
+                        <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                        <div className="h-4 bg-muted rounded w-full"></div>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -104,7 +147,7 @@ export const ThinkingMessage = () => {
           "flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl",
           {
             "group-data-[role=user]/message:bg-muted": true,
-          },
+          }
         )}
       >
         <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
