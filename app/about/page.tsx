@@ -106,7 +106,7 @@ export default function AboutPage() {
             </p>
             <p className="text-gray-300">
               Rizz Lab aims to help you be your best, authentic self - not turn
-              you into someone you're not.
+              you into someone you&apos;re not.
             </p>
           </div>
         </div>

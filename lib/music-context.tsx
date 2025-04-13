@@ -98,7 +98,7 @@ export const MusicProvider: React.FC<{ children: ReactNode }> = ({
         audioRef.current.pause();
       }
     };
-  }, [volume]);
+  }, [volume, isPlaying]);
 
   // Initialize audio but don't autoplay immediately
   const initializeAudio = () => {

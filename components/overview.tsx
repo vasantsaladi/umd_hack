@@ -127,7 +127,7 @@ export const Overview = () => {
             </h3>
             <p className="text-gray-300">
               Experience interactive conversations with AI voice responses. Try
-              "speak: hello" to hear it!
+              &quot;speak: hello&quot; to hear it!
             </p>
           </div>
         </div>

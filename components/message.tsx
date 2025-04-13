@@ -74,7 +74,7 @@ export const PreviewMessage = ({
                             </span>
                           </div>
                           <p className="text-gray-300 italic">
-                            "{result.text}"
+                            &quot;{result.text}&quot;
                           </p>
                         </div>
                       ) : (
