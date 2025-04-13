@@ -91,9 +91,26 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
     },
   ]);
 
+  // Ensure evaluationResult has all required properties
+  const safeResult = {
+    score: evaluationResult?.score || 0,
+    feedback: evaluationResult?.feedback || "Feedback unavailable",
+    strengths: evaluationResult?.strengths || [],
+    improvements: evaluationResult?.improvements || [],
+    category: evaluationResult?.category || "medium",
+    emojis: evaluationResult?.emojis || ["💬", "🔥", "✨"],
+  };
+
+  // Debug the evaluationResult when it changes
+  useEffect(() => {
+    if (evaluationResult) {
+      console.log("Received evaluation result:", evaluationResult);
+    }
+  }, [evaluationResult]);
+
   // Trigger confetti for high scores on first render
   useEffect(() => {
-    if (evaluationResult && evaluationResult.score >= 8 && !hasAnimated) {
+    if (safeResult.score >= 8 && !hasAnimated) {
       setTimeout(() => {
         setShowConfetti(true);
         setHasAnimated(true);
@@ -102,12 +119,10 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
         setTimeout(() => setShowConfetti(false), 3000);
       }, 500);
     }
-  }, [evaluationResult, hasAnimated]);
+  }, [safeResult.score, hasAnimated]);
 
   const handleShare = () => {
-    if (!evaluationResult) return;
-
-    const shareText = `I just got a rizz score of ${evaluationResult.score}/10 with: "${userInput}" #RizzLab`;
+    const shareText = `I just got a rizz score of ${safeResult.score}/10 with: "${userInput}" #RizzLab`;
 
     if (navigator.share) {
       navigator
@@ -249,9 +264,9 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
         <div className="flex items-center gap-2">
           <Flame
             className={`${
-              evaluationResult && evaluationResult.score >= 8
+              safeResult.score >= 8
                 ? "text-pink-500"
-                : evaluationResult && evaluationResult.score >= 5
+                : safeResult.score >= 5
                 ? "text-yellow-500"
                 : "text-blue-500"
             }`}
@@ -259,7 +274,7 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
           />
           <h3 className="font-medium text-white">Rizz Evaluation</h3>
           <span className="px-2 py-0.5 bg-purple-900/50 rounded-full text-xs text-purple-300 border border-purple-800/30">
-            {evaluationResult && evaluationResult.category}
+            {safeResult.category}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -428,17 +443,17 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
               >
                 <div
                   className={`w-32 h-32 rounded-full flex items-center justify-center text-4xl font-bold border-4 ${
-                    evaluationResult && evaluationResult.score >= 8
+                    safeResult.score >= 8
                       ? "border-pink-500 text-pink-500 bg-pink-950/30"
-                      : evaluationResult && evaluationResult.score >= 5
+                      : safeResult.score >= 5
                       ? "border-yellow-500 text-yellow-500 bg-yellow-950/30"
                       : "border-blue-500 text-blue-500 bg-blue-950/30"
                   }`}
                 >
-                  {evaluationResult ? `${evaluationResult.score}/10` : "?/10"}
+                  {safeResult.score ? `${safeResult.score}/10` : "?/10"}
                 </div>
                 <div className="absolute -top-1 -right-1">
-                  {evaluationResult && evaluationResult.score >= 8 && (
+                  {safeResult && safeResult.score >= 8 && (
                     <div className="animate-pulse">
                       <Sparkles className="text-pink-500" size={24} />
                     </div>
@@ -451,13 +466,13 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
                   Feedback
                 </h3>
                 <p className="text-gray-300">
-                  {evaluationResult && evaluationResult.feedback}
+                  {safeResult && safeResult.feedback}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {evaluationResult &&
-                    evaluationResult.emojis &&
-                    evaluationResult.emojis.map((emoji, index) => (
+                  {safeResult &&
+                    safeResult.emojis &&
+                    safeResult.emojis.map((emoji, index) => (
                       <motion.span
                         key={index}
                         initial={{ scale: 0, rotate: -10 }}
@@ -489,9 +504,9 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
                   <h4 className="font-medium text-white/90">Strengths</h4>
                 </div>
                 <ul className="space-y-2">
-                  {evaluationResult &&
-                    evaluationResult.strengths &&
-                    evaluationResult.strengths.map((strength, index) => (
+                  {safeResult &&
+                    safeResult.strengths &&
+                    safeResult.strengths.map((strength, index) => (
                       <motion.li
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -517,9 +532,9 @@ export const RizzEvaluation: FC<RizzEvaluationProps> = ({
                   <h4 className="font-medium text-white/90">Improvements</h4>
                 </div>
                 <ul className="space-y-2">
-                  {evaluationResult &&
-                    evaluationResult.improvements &&
-                    evaluationResult.improvements.map((improvement, index) => (
+                  {safeResult &&
+                    safeResult.improvements &&
+                    safeResult.improvements.map((improvement, index) => (
                       <motion.li
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}

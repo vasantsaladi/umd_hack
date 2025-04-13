@@ -28,6 +28,8 @@ export function Chat() {
         toast.error(
           "You are sending too many messages. Please try again later."
         );
+      } else {
+        toast.error("An error occurred. Please try again.");
       }
     },
   });
@@ -50,7 +52,7 @@ export function Chat() {
 
         {messages.map((message, index) => (
           <motion.div
-            key={message.id}
+            key={message.id || `message-${index}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -70,7 +72,7 @@ export function Chat() {
 
         {isLoading &&
           messages.length > 0 &&
-          messages[messages.length - 1].role === "user" && (
+          messages[messages.length - 1]?.role === "user" && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}

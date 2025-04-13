@@ -232,6 +232,9 @@ export function MultimodalInput({
       // Pause background music while TTS is playing
       pauseDuringAction();
 
+      // Show loading toast
+      const loadingToast = toast.loading("Generating speech...");
+
       const response = await fetch("/api/text-to-speech", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,44 +245,75 @@ export function MultimodalInput({
         }),
       });
 
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
       if (!response.ok) {
-        throw new Error("Failed to generate speech");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Text-to-speech API error:", errorData);
+
+        if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please try again later.");
+        } else if (response.status === 400) {
+          throw new Error(
+            "Invalid text input. Please try with different text."
+          );
+        } else if (response.status === 500) {
+          throw new Error("Server error. Please try again later.");
+        } else {
+          throw new Error(`Failed to generate speech: ${response.statusText}`);
+        }
       }
 
       const data = await response.json();
 
-      if (data.audio_base64) {
-        // If there's an existing audio element playing, stop it
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
+      if (!data.audio_base64) {
+        throw new Error("No audio data received from the server.");
+      }
 
-        // Create an audio element and play it
-        const audio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
-        audioRef.current = audio;
+      // If there's an existing audio element playing, stop it
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
 
-        // Add event listener to resume background music when TTS finishes
-        audio.onended = () => {
-          audioRef.current = null;
-          resumeAfterAction();
-        };
+      // Create an audio element and play it
+      const audio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
+      audioRef.current = audio;
 
-        // Add event listener for audio errors
-        audio.onerror = () => {
-          console.error("Error playing TTS audio");
-          audioRef.current = null;
-          resumeAfterAction();
-        };
+      // Add event listener to resume background music when TTS finishes
+      audio.onended = () => {
+        audioRef.current = null;
+        resumeAfterAction();
+      };
 
-        audio.play().catch((error) => {
-          console.error("Error playing TTS:", error);
-          resumeAfterAction();
-        });
+      // Add event listener for audio errors
+      audio.onerror = (e) => {
+        console.error("Error playing TTS audio:", e);
+        toast.error("Error playing audio. Please try again.");
+        audioRef.current = null;
+        resumeAfterAction();
+      };
+
+      // Display success toast
+      toast.success("Speech generated successfully!");
+
+      try {
+        await audio.play();
+      } catch (playError) {
+        console.error("Error playing TTS:", playError);
+        toast.error(
+          "Couldn't play audio. This may require user interaction first."
+        );
+        resumeAfterAction();
       }
     } catch (error) {
       console.error("Error generating speech:", error);
-      toast.error("Failed to generate speech. Please try again.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate speech. Please try again."
+      );
       resumeAfterAction();
     }
   };

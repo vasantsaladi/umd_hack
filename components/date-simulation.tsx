@@ -63,6 +63,37 @@ interface DateSimulationResult {
   };
 }
 
+// Add image error boundary component
+interface ImageWithFallbackProps {
+  src: string;
+  alt: string;
+  className?: string;
+}
+
+const ImageWithFallback = ({ src, alt, className }: ImageWithFallbackProps) => {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+  }, [src]);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(
+        "https://placehold.co/600x400/9333ea/ffffff?text=Image+Unavailable"
+      );
+      console.error("Image failed to load:", src);
+    }
+  };
+
+  return (
+    <img src={imgSrc} alt={alt} className={className} onError={handleError} />
+  );
+};
+
 export const DateSimulation: FC<DateSimulationProps> = ({
   simulationResult,
   isLoading = false,
@@ -250,6 +281,10 @@ export const DateSimulation: FC<DateSimulationProps> = ({
     y: number;
   } | null>(null);
 
+  // Add a constant for fallback image
+  const FALLBACK_IMAGE_URL =
+    "https://placehold.co/600x400/9333ea/ffffff?text=Date+Simulation+Image";
+
   // Create audio URL from base64 data when available
   useEffect(() => {
     if (simulationResult?.date_speech?.audio_base64) {
@@ -270,32 +305,43 @@ export const DateSimulation: FC<DateSimulationProps> = ({
     };
   }, [simulationResult, audioUrl, isPlaying, resumeAfterAction]);
 
-  // Handle image loading state
+  // Fix image loading with timeout and better error handling
   useEffect(() => {
-    // Set loading state to true when simulation result changes
     if (simulationResult?.image_url) {
       setIsImageLoading(true);
 
-      // Create a new image object to check when it loads
       const img = new Image();
+
+      // Set a 15-second timeout for image loading
+      const loadingTimeout = setTimeout(() => {
+        setIsImageLoading(false);
+        toast.error("Image loading timed out. Using fallback image.", {
+          id: "image-timeout",
+        });
+      }, 15000);
+
+      img.onload = () => {
+        clearTimeout(loadingTimeout);
+        setIsImageLoading(false);
+      };
+
+      img.onerror = () => {
+        clearTimeout(loadingTimeout);
+        setIsImageLoading(false);
+        toast.error("Failed to load image. Using fallback image.", {
+          id: "image-error",
+        });
+      };
+
       img.src = simulationResult.image_url;
 
-      // When image loads, set loading state to false
-      img.onload = () => {
-        setIsImageLoading(false);
+      return () => {
+        clearTimeout(loadingTimeout);
+        img.onload = null;
+        img.onerror = null;
       };
-
-      // If image fails to load, also set loading state to false
-      img.onerror = () => {
-        setIsImageLoading(false);
-      };
-
-      // Set a timeout to ensure loading state is cleared even if onload/onerror don't fire
-      const timeout = setTimeout(() => {
-        setIsImageLoading(false);
-      }, 10000); // 10 second maximum loading time
-
-      return () => clearTimeout(timeout);
+    } else {
+      setIsImageLoading(false);
     }
   }, [simulationResult?.image_url]);
 
@@ -1075,8 +1121,8 @@ export const DateSimulation: FC<DateSimulationProps> = ({
                 </p>
               </div>
             ) : (
-              <img
-                src={simulationResult.image_url}
+              <ImageWithFallback
+                src={simulationResult.image_url || FALLBACK_IMAGE_URL}
                 alt="Date scenario full view"
                 className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
               />
@@ -1227,8 +1273,8 @@ export const DateSimulation: FC<DateSimulationProps> = ({
                   </div>
                 ) : (
                   // Actual image when loaded
-                  <img
-                    src={simulationResult.image_url}
+                  <ImageWithFallback
+                    src={simulationResult.image_url || FALLBACK_IMAGE_URL}
                     alt="Date scenario visualization"
                     className="w-full h-auto object-cover transition-all duration-300"
                   />
