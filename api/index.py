@@ -349,9 +349,14 @@ async def upload_audio(file: UploadFile = File(...)):
 class TextToSpeechRequest(BaseModel):
     text: str
     voice: str = "nova"  # Default voice
+    use_advanced_model: bool = False  # Whether to use the advanced GPT-4o audio models
 
 @app.post("/api/text-to-speech")
 async def text_to_speech(request: TextToSpeechRequest):
     """Generate speech from text using OpenAI's Text-to-Speech API"""
-    result = generate_speech(text=request.text, voice=request.voice)
+    result = generate_speech(
+        text=request.text, 
+        voice=request.voice,
+        use_advanced_model=request.use_advanced_model
+    )
     return result

@@ -14,6 +14,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { useMusic } from "@/lib/music-context";
 
 interface DateSimulationProps {
   simulationResult?: DateSimulationResult;
@@ -45,6 +46,7 @@ export const DateSimulation: FC<DateSimulationProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const { pauseDuringAction, resumeAfterAction } = useMusic();
 
   // Create audio URL from base64 data when available
   useEffect(() => {
@@ -59,8 +61,32 @@ export const DateSimulation: FC<DateSimulationProps> = ({
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
+      // Ensure music is resumed if component unmounts while playing
+      if (isPlaying) {
+        resumeAfterAction();
+      }
     };
-  }, [simulationResult]);
+  }, [simulationResult, audioUrl, isPlaying, resumeAfterAction]);
+
+  // Add to the existing useEffect at the top of the component
+  useEffect(() => {
+    // If we have a simulation result and audio is not currently playing,
+    // make sure background music is playing for the romantic mood
+    if (simulationResult && !isPlaying && !audioUrl) {
+      // Check if music is already playing via context
+      if (!isPlaying) {
+        // You may want to ensure background music is playing here
+        // This is optional, remove if you prefer music to remain in its current state
+        const timeoutId = setTimeout(() => {
+          if (!isPlaying) {
+            resumeAfterAction(); // This will resume music if it was previously paused
+          }
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [simulationResult, isPlaying, audioUrl, resumeAfterAction]);
 
   // Handle play/pause audio
   const toggleAudio = () => {
@@ -68,8 +94,13 @@ export const DateSimulation: FC<DateSimulationProps> = ({
 
     if (isPlaying) {
       audioRef.current.pause();
+      resumeAfterAction(); // Resume background music when paused
     } else {
-      audioRef.current.play();
+      pauseDuringAction(); // Pause background music before playing
+      audioRef.current.play().catch((error) => {
+        console.error("Error playing audio:", error);
+        resumeAfterAction(); // Resume background music if error
+      });
     }
 
     setIsPlaying(!isPlaying);
@@ -78,6 +109,7 @@ export const DateSimulation: FC<DateSimulationProps> = ({
   // Update isPlaying state when audio ends
   const handleAudioEnded = () => {
     setIsPlaying(false);
+    resumeAfterAction(); // Resume background music when finished
   };
 
   if (isLoading) {
@@ -188,6 +220,11 @@ export const DateSimulation: FC<DateSimulationProps> = ({
           ref={audioRef}
           src={audioUrl}
           onEnded={handleAudioEnded}
+          onError={() => {
+            console.error("Audio playback error");
+            setIsPlaying(false);
+            resumeAfterAction();
+          }}
           style={{ display: "none" }}
         />
       )}

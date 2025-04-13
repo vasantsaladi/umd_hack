@@ -343,13 +343,14 @@ def transcribe_audio(audio_url):
             "error": str(e)
         }
 
-def generate_speech(text, voice="alloy"):
+def generate_speech(text, voice="alloy", use_advanced_model=False):
     """
     Generates speech from text using OpenAI's Text-to-Speech API
     
     Args:
         text (str): The text to convert to speech
         voice (str): The voice to use (options: alloy, echo, fable, onyx, nova, shimmer)
+        use_advanced_model (bool): Whether to use the advanced GPT-4o audio models when possible
         
     Returns:
         dict: Audio data and metadata
@@ -358,16 +359,46 @@ def generate_speech(text, voice="alloy"):
         if len(text) > 4000:
             # OpenAI TTS has a 4096 character limit
             text = text[:4000] + "..."
-            
-        # Generate the speech using OpenAI's API
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice=voice,
-            input=text,
-        )
         
         # Create temp directory if it doesn't exist
         os.makedirs("temp", exist_ok=True)
+        
+        if use_advanced_model:
+            try:
+                # Try using the advanced GPT-4o mini TTS model
+                # This model understands how to speak with the right emotion and tone
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini-tts",
+                    modalities=["text", "audio"],
+                    audio={"voice": voice, "format": "mp3"},
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": f"Speak the following text naturally: {text}"
+                        }
+                    ]
+                )
+                
+                # Extract audio data directly from response
+                audio_base64 = response.choices[0].message.audio.data
+                
+                return {
+                    "audio_base64": audio_base64,
+                    "text": text,
+                    "voice": voice,
+                    "model": "gpt-4o-mini-tts"
+                }
+            except Exception as e:
+                # If there's an error with the advanced model, fall back to the standard model
+                print(f"Error using advanced TTS model, falling back to standard: {e}")
+                pass
+                
+        # Standard TTS model
+        response = client.audio.speech.create(
+            model="tts-1-hd",  # Using HD model for better quality
+            voice=voice,
+            input=text,
+        )
         
         # Save to a temporary file
         temp_file = f"temp/speech_{random.randint(10000, 99999)}.mp3"
@@ -383,7 +414,8 @@ def generate_speech(text, voice="alloy"):
         return {
             "audio_base64": audio_base64,
             "text": text,
-            "voice": voice
+            "voice": voice,
+            "model": "tts-1-hd"
         }
         
     except Exception as e:
@@ -465,7 +497,22 @@ def simulate_date(message, context="casual conversation"):
         if date_responses:
             # Join with a pause between responses
             combined_responses = " ... ".join(date_responses)
-            date_speech = generate_speech(combined_responses, voice="nova")
+            
+            # Use the advanced TTS model for more natural and emotional delivery
+            description = ""
+            if "flirty" in context.lower() or "bar" in context.lower():
+                description = "Speak this in a flirtatious, warm manner"
+            elif "restaurant" in context.lower() or "fancy" in context.lower():
+                description = "Speak this in a sophisticated, elegant manner"
+            elif "coffee" in context.lower() or "casual" in context.lower():
+                description = "Speak this in a casual, friendly manner"
+            
+            # Use more natural, emotional speech for the date
+            date_speech = generate_speech(
+                combined_responses, 
+                voice="nova", 
+                use_advanced_model=True
+            )
         
         # Use a second API call to analyze and score the date
         analysis_prompt = f"""

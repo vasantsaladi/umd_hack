@@ -29,6 +29,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { VoiceRecorder } from "./voice-recorder";
 import { ImageIcon, Volume2 } from "lucide-react";
+import { useMusic } from "@/lib/music-context";
+import { Checkbox } from "./ui/checkbox";
 
 const suggestedActions = [
   {
@@ -103,10 +105,13 @@ export function MultimodalInput({
   const { width } = useWindowSize();
   const [selectedContext, setSelectedContext] = useState("casual conversation");
   const [selectedVoice, setSelectedVoice] = useState("nova");
+  const [useAdvancedModel, setUseAdvancedModel] = useState(false);
   const [showContextSelector, setShowContextSelector] = useState(false);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
   const [isAudioProcessing, setIsAudioProcessing] = useState(false);
   const [showImageGen, setShowImageGen] = useState(false);
+  const { pauseDuringAction, resumeAfterAction } = useMusic();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -224,10 +229,17 @@ export function MultimodalInput({
     voice: string = selectedVoice
   ) => {
     try {
+      // Pause background music while TTS is playing
+      pauseDuringAction();
+
       const response = await fetch("/api/text-to-speech", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voice }),
+        body: JSON.stringify({
+          text,
+          voice,
+          use_advanced_model: useAdvancedModel,
+        }),
       });
 
       if (!response.ok) {
@@ -237,13 +249,38 @@ export function MultimodalInput({
       const data = await response.json();
 
       if (data.audio_base64) {
+        // If there's an existing audio element playing, stop it
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+
         // Create an audio element and play it
         const audio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
-        audio.play();
+        audioRef.current = audio;
+
+        // Add event listener to resume background music when TTS finishes
+        audio.onended = () => {
+          audioRef.current = null;
+          resumeAfterAction();
+        };
+
+        // Add event listener for audio errors
+        audio.onerror = () => {
+          console.error("Error playing TTS audio");
+          audioRef.current = null;
+          resumeAfterAction();
+        };
+
+        audio.play().catch((error) => {
+          console.error("Error playing TTS:", error);
+          resumeAfterAction();
+        });
       }
     } catch (error) {
       console.error("Error generating speech:", error);
       toast.error("Failed to generate speech. Please try again.");
+      resumeAfterAction();
     }
   };
 
@@ -400,6 +437,23 @@ export function MultimodalInput({
                     ))}
                   </SelectContent>
                 </Select>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="advanced-model"
+                    checked={useAdvancedModel}
+                    onCheckedChange={(checked: boolean) =>
+                      setUseAdvancedModel(checked)
+                    }
+                    className="h-3 w-3"
+                  />
+                  <Label
+                    htmlFor="advanced-model"
+                    className="text-xs cursor-pointer text-muted-foreground"
+                  >
+                    Advanced AI voice
+                  </Label>
+                </div>
               </motion.div>
             )}
           </div>

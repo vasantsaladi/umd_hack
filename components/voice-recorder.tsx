@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { useMusic } from "@/lib/music-context";
 
 interface VoiceRecorderProps {
   onTranscription: (text: string) => void;
@@ -22,6 +23,7 @@ export const VoiceRecorder = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { pauseDuringAction, resumeAfterAction } = useMusic();
 
   // Clean up on unmount
   useEffect(() => {
@@ -35,11 +37,16 @@ export const VoiceRecorder = ({
       ) {
         mediaRecorderRef.current.stop();
       }
+      // Ensure music is resumed if component unmounts
+      resumeAfterAction();
     };
-  }, []);
+  }, [resumeAfterAction]);
 
   const startRecording = async () => {
     try {
+      // Pause background music during recording
+      pauseDuringAction();
+
       audioChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -76,6 +83,8 @@ export const VoiceRecorder = ({
     } catch (error) {
       console.error("Error starting recording:", error);
       toast.error("Could not access microphone. Please check permissions.");
+      // Resume music if recording fails to start
+      resumeAfterAction();
     }
   };
 
@@ -94,6 +103,7 @@ export const VoiceRecorder = ({
 
     try {
       setIsProcessing(true);
+      // Keep music paused during processing
 
       const formData = new FormData();
       formData.append("file", audioBlob, "recording.mp3");
@@ -115,6 +125,8 @@ export const VoiceRecorder = ({
     } finally {
       setIsProcessing(false);
       setAudioBlob(null);
+      // Resume background music after processing is done
+      resumeAfterAction();
     }
   };
 

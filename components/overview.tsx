@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useEffect } from "react";
 
 import {
   HeartIcon,
@@ -8,9 +9,16 @@ import {
   Sparkles,
   Volume2,
   CalendarCheck,
+  Music,
+  VolumeX,
 } from "lucide-react";
 
+import { Button } from "./ui/button";
+import { useMusic } from "@/lib/music-context";
+
 export const Overview = () => {
+  const { isPlaying, toggle } = useMusic();
+
   return (
     <motion.div
       key="overview"
@@ -21,11 +29,29 @@ export const Overview = () => {
       transition={{ delay: 0.5 }}
     >
       <div className="rounded-xl p-6 flex flex-col gap-8 leading-relaxed text-center max-w-xl">
-        <div className="flex flex-row justify-center gap-3 items-center">
+        <div className="flex flex-row justify-center gap-3 items-center relative">
           <HeartIcon className="text-red-500" size={32} />
           <span className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
             Rizz Lab
           </span>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`absolute right-0 p-1 h-8 w-8 rounded-full hover:bg-pink-500/10 ${
+              isPlaying ? "music-btn-active" : ""
+            }`}
+            onClick={toggle}
+            title={
+              isPlaying ? "Mute background music" : "Play background music"
+            }
+          >
+            {isPlaying ? (
+              <Volume2 size={16} className="text-pink-400" />
+            ) : (
+              <VolumeX size={16} className="text-muted-foreground" />
+            )}
+          </Button>
         </div>
 
         <div className="bg-gradient-to-r from-pink-100/10 to-purple-100/10 p-6 rounded-xl border border-pink-200/20">
@@ -92,6 +118,16 @@ export const Overview = () => {
             <p className="text-gray-300">
               Experience interactive conversations with AI voice responses. Try
               "speak: hello" to hear it!
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 bg-gray-800/30 rounded-xl border border-gray-700/40 flex items-center gap-3">
+          <Music className="text-pink-400" size={18} />
+          <div className="text-sm text-left">
+            <p className="text-gray-300">
+              Enjoy the romantic ambiance with our background music as you
+              practice your dating skills
             </p>
           </div>
         </div>

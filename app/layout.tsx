@@ -1,8 +1,11 @@
-import "./globals.css";
+import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
+import "./globals.css";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
+import { ClientLoadingProvider } from "@/components/client-loading-provider";
+import { MusicProvider } from "@/lib/music-context";
 
 export const metadata = {
   title: "Rizz Lab - Train Your Flirting Skills",
@@ -35,8 +38,12 @@ export default function RootLayout({
       <head></head>
       <body className={cn(GeistSans.className, "antialiased dark")}>
         <Toaster position="top-center" richColors />
-        <Navbar />
-        {children}
+        <MusicProvider>
+          <ClientLoadingProvider>
+            <Navbar />
+            {children}
+          </ClientLoadingProvider>
+        </MusicProvider>
       </body>
     </html>
   );
