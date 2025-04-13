@@ -1,11 +1,1 @@
-{
-  "presets": ["next/babel"],
-  "plugins": [
-    [
-      "@babel/plugin-transform-react-jsx",
-      {
-        "throwIfNamespace": false
-      }
-    ]
-  ]
-}
+

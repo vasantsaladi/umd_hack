@@ -15,6 +15,9 @@ const nextConfig = {
   // Add rule to disable unescaped entities warning
   reactStrictMode: true,
   swcMinify: true,
+  experimental: {
+    forceSwcTransforms: true,
+  },
   rewrites: async () => {
     return [
       {
