@@ -13,24 +13,43 @@ export const MusicControl = () => {
   // Try to initialize on component mount
   useEffect(() => {
     if (!hasAttemptedInit) {
+      console.log("MusicControl: Attempting to initialize audio");
       initializeAudio();
       setHasAttemptedInit(true);
 
-      // Attempt to play again after a short delay
-      const timer = setTimeout(() => {
-        if (!isPlaying) {
-          toggle();
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
+      // Force play with multiple attempts
+      const attempts = [500, 1500, 3000];
+      attempts.forEach((delay) => {
+        setTimeout(() => {
+          if (!isPlaying) {
+            console.log(
+              `MusicControl: Attempting to play after ${delay}ms delay`
+            );
+            toggle();
+          }
+        }, delay);
+      });
     }
   }, [initializeAudio, isPlaying, toggle, hasAttemptedInit]);
+
+  // Add a click handler that is more aggressive than just toggle
+  const handleMusicClick = () => {
+    console.log("MusicControl: Music button clicked");
+    toggle();
+
+    // If toggling to play, force another attempt after a short delay
+    if (!isPlaying) {
+      setTimeout(() => {
+        initializeAudio();
+        console.log("MusicControl: Extra play attempt after button click");
+      }, 100);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2">
       <Button
-        onClick={toggle}
+        onClick={handleMusicClick}
         variant={isPlaying ? "default" : "outline"}
         className={cn(
           "rounded-full flex items-center gap-1.5 px-3 py-1 h-8 transition-colors",

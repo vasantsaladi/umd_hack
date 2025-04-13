@@ -6,6 +6,10 @@ import json
 import base64
 from openai import OpenAI
 from dotenv import load_dotenv
+from PIL import Image
+from io import BytesIO
+import logging
+from ..utils.prompt import ensure_allowed_model
 
 load_dotenv(".env.local")
 
@@ -32,7 +36,7 @@ def get_current_weather(latitude, longitude):
         print(f"Error fetching weather data: {e}")
         return None
 
-def generate_rizz_image(prompt, context="casual conversation"):
+def generate_rizz_image(prompt, context=None):
     """
     Generates an image visualizing the rizz situation or pickup line
     
@@ -44,17 +48,58 @@ def generate_rizz_image(prompt, context="casual conversation"):
         dict: Image URL and metadata
     """
     try:
+        # If no context is provided, randomly select one
+        if not context:
+            import random
+            
+            # Create a diverse list of dating contexts
+            contexts = [
+                "coffee shop",
+                "upscale restaurant",
+                "casual bar",
+                "art gallery opening",
+                "bookstore",
+                "park picnic",
+                "beach sunset",
+                "rooftop lounge",
+                "museum",
+                "hiking trail",
+                "wine tasting",
+                "cooking class",
+                "farmers market",
+                "concert venue",
+                "botanical garden"
+            ]
+            
+            # Select a random context
+            context = random.choice(contexts)
+            print(f"Randomly selected context for image: {context}")
+            
         # Create a more detailed prompt for the image generation
         if context == "dating app":
             setting = "dating app conversation on a smartphone screen"
-        elif context == "bar":
+        elif context == "bar" or context == "casual bar":
             setting = "trendy bar or nightclub setting with low lighting"
-        elif context == "casual conversation":
-            setting = "casual coffee shop or park conversation"
-        elif context == "workplace":
+        elif context == "coffee shop":
+            setting = "cozy coffee shop with warm lighting and comfortable seating"
+        elif context == "casual conversation" or context == "bookstore":
+            setting = "bookstore with shelves of books in the background"
+        elif context == "upscale restaurant":
+            setting = "elegant restaurant with fine dining atmosphere"
+        elif context == "art gallery opening":
+            setting = "modern art gallery with paintings and sculptures"
+        elif context == "park picnic":
+            setting = "scenic park with trees and a picnic blanket"
+        elif context == "beach sunset":
+            setting = "beach at sunset with golden light and waves"
+        elif context == "museum":
+            setting = "museum with exhibits and displays in the background"
+        elif context == "wine tasting":
+            setting = "vineyard or wine bar with glasses of wine"
+        elif "workplace" in context:
             setting = "professional office environment"
         else:
-            setting = "social setting"
+            setting = f"{context} setting with appropriate ambiance"
             
         # Create a more detailed prompt, avoiding explicit content
         enhanced_prompt = f"""
@@ -66,28 +111,42 @@ def generate_rizz_image(prompt, context="casual conversation"):
         Use vibrant colors with pink and purple accents.
         """
         
-        response = client.images.generate(
-            model="dall-e-3",
-            prompt=enhanced_prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1,
-        )
+        try:
+            # First try with DALL-E 3
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=enhanced_prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = response.data[0].url
+        except Exception as e:
+            print(f"DALL-E 3 error: {e}, falling back to DALL-E 2")
+            # Fall back to DALL-E 2 if DALL-E 3 fails
+            response = client.images.generate(
+                model="dall-e-2",
+                prompt=enhanced_prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = response.data[0].url
         
         # Return the image URL and related metadata
         return {
-            "url": response.data[0].url,
+            "url": image_url,
             "context": context,
             "prompt": prompt
         }
-        
     except Exception as e:
-        print(f"Error generating image: {e}")
+        print(f"Error generating rizz image: {e}")
+        # Return a placeholder image on failure
         return {
-            "url": "https://placehold.co/600x400/9333ea/ffffff?text=Image+Generation+Failed",
-            "error": str(e),
+            "url": "https://placehold.co/1024x1024/9333ea/ffffff?text=Rizz+Image+Generation+Failed",
             "context": context,
-            "prompt": prompt
+            "prompt": prompt,
+            "error": str(e)
         }
 
 def evaluate_rizz(message, context="casual conversation"):
@@ -350,7 +409,7 @@ def generate_speech(text, voice="alloy", use_advanced_model=False):
     Args:
         text (str): The text to convert to speech
         voice (str): The voice to use (options: alloy, echo, fable, onyx, nova, shimmer)
-        use_advanced_model (bool): Whether to use the advanced GPT-4o audio models when possible
+        use_advanced_model (bool): Whether to use the advanced GPT-3.5-turbo audio models when possible
         
     Returns:
         dict: Audio data and metadata
@@ -365,10 +424,10 @@ def generate_speech(text, voice="alloy", use_advanced_model=False):
         
         if use_advanced_model:
             try:
-                # Try using the advanced GPT-4o mini TTS model
+                # Try using the advanced GPT-3.5-turbo TTS model
                 # This model understands how to speak with the right emotion and tone
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini-tts",
+                    model=ensure_allowed_model("gpt-3.5-turbo"),
                     modalities=["text", "audio"],
                     audio={"voice": voice, "format": "mp3"},
                     messages=[
@@ -386,7 +445,7 @@ def generate_speech(text, voice="alloy", use_advanced_model=False):
                     "audio_base64": audio_base64,
                     "text": text,
                     "voice": voice,
-                    "model": "gpt-4o-mini-tts"
+                    "model": "gpt-3.5-turbo"
                 }
             except Exception as e:
                 # If there's an error with the advanced model, fall back to the standard model
@@ -426,7 +485,7 @@ def generate_speech(text, voice="alloy", use_advanced_model=False):
             "voice": voice
         }
 
-def simulate_date(message, context="casual conversation"):
+def simulate_date(message, context=None):
     """
     Simulates a date scenario based on the user's input and evaluates how it would go
     
@@ -438,6 +497,38 @@ def simulate_date(message, context="casual conversation"):
         dict: Date simulation results with scenario, response, outcome and score
     """
     try:
+        # If no context is provided, randomly select one
+        if not context:
+            import random
+            
+            # Create a diverse list of dating contexts
+            contexts = [
+                "coffee shop",
+                "upscale restaurant",
+                "casual bar",
+                "art gallery opening",
+                "bookstore",
+                "park picnic",
+                "beach sunset",
+                "rooftop lounge",
+                "museum tour",
+                "hiking trail",
+                "wine tasting",
+                "cooking class",
+                "farmers market",
+                "concert venue",
+                "botanical garden",
+                "ice cream parlor",
+                "arcade",
+                "bowling alley",
+                "jazz club",
+                "food truck festival"
+            ]
+            
+            # Select a random context
+            context = random.choice(contexts)
+            print(f"Randomly selected context: {context}")
+        
         # Create a system prompt for the date simulation
         system_prompt = f"""
         You are a dating coach AI that simulates realistic dating scenarios. 
@@ -447,7 +538,7 @@ def simulate_date(message, context="casual conversation"):
         Create the simulation as a dialogue between the user and their date.
         Format as:
         
-        Date Setting: [Brief description of the setting]
+        Date Setting: [Brief description of the {context} setting with specific details]
         
         You: [User's opening line]
         Date: [Date's response]
@@ -460,9 +551,9 @@ def simulate_date(message, context="casual conversation"):
         3. Suggestions for improvement
         """
         
-        # Call the OpenAI API with GPT-4o
+        # Call the OpenAI API with GPT-3.5-turbo
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=ensure_allowed_model("gpt-3.5-turbo"),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message}
@@ -474,16 +565,40 @@ def simulate_date(message, context="casual conversation"):
         # Parse the response to extract the date simulation components
         simulation_text = response.choices[0].message.content
         
-        # Generate a visual representation of the date
-        image_prompt = f"A stylized illustration of a date scenario in a {context} setting. The conversation includes: '{message}'. Show both people engaged in conversation with appropriate body language and facial expressions. Use an artistic, non-photorealistic style with vibrant colors."
+        # Generate a placeholder image first to avoid waiting
+        placeholder_image_url = "https://placehold.co/1024x1024/9333ea/ffffff?text=Date+Simulation+Image+Loading"
         
-        image_response = client.images.generate(
-            model="dall-e-3",
-            prompt=image_prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1,
-        )
+        # Use a better prompt for DALL-E 3 image generation
+        image_prompt = f"""Create a stylized, artistic illustration of a romantic date conversation in a {context} setting.
+Two people engaging in conversation with appropriate body language showing interest.
+Vibrant colors, non-photorealistic style, modern aesthetic.
+No text overlay. Focus on the emotional connection between the people."""
+        
+        # Set up image generation with a shorter timeout
+        try:
+            image_response = client.images.generate(
+                model="dall-e-3", # Use DALL-E 3 for better quality
+                prompt=image_prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = image_response.data[0].url
+        except Exception as img_error:
+            print(f"Image generation error: {img_error}")
+            # Try fallback to DALL-E 2 if DALL-E 3 fails
+            try:
+                fallback_response = client.images.generate(
+                    model="dall-e-2",
+                    prompt=f"Artistic illustration of two people on a date in a {context}",
+                    size="1024x1024",
+                    quality="standard",
+                    n=1,
+                )
+                image_url = fallback_response.data[0].url
+            except:
+                # Use placeholder if all attempts fail
+                image_url = placeholder_image_url
         
         # Extract the date's responses from the simulation text for text-to-speech
         date_responses = []
@@ -531,7 +646,7 @@ def simulate_date(message, context="casual conversation"):
         """
         
         analysis_response = client.chat.completions.create(
-            model="gpt-4o",
+            model=ensure_allowed_model("gpt-3.5-turbo"),
             messages=[
                 {"role": "system", "content": "You are a dating coach AI. Respond only with the requested JSON format."},
                 {"role": "user", "content": analysis_prompt}
@@ -564,7 +679,7 @@ def simulate_date(message, context="casual conversation"):
         # Return the complete simulation results
         return {
             "scenario": simulation_text,
-            "image_url": image_response.data[0].url,
+            "image_url": image_url,
             "context": context,
             "analysis": analysis,
             "date_speech": date_speech

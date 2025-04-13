@@ -25,6 +25,13 @@ class ClientMessage(BaseModel):
     experimental_attachments: Optional[List[ClientAttachment]] = None
     toolInvocations: Optional[List[ToolInvocation]] = None
 
+def ensure_allowed_model(model: str) -> str:
+    """Ensures that only allowed models are used, defaulting to gpt-3.5-turbo to avoid rate limits."""
+    # If model is explicitly gpt-4 or gpt-4o variant, force it to be gpt-3.5-turbo
+    if model and ("gpt-4" in model or "gpt-4o" in model):
+        return "gpt-3.5-turbo"
+    return model or "gpt-3.5-turbo"
+
 def convert_to_openai_messages(messages: List[ClientMessage]) -> List[ChatCompletionMessageParam]:
     openai_messages = []
 

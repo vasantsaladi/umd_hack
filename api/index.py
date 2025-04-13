@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
-from .utils.prompt import ClientMessage, convert_to_openai_messages
+from .utils.prompt import ClientMessage, convert_to_openai_messages, ensure_allowed_model
 from .utils.tools import get_current_weather, evaluate_rizz, generate_rizz_image, transcribe_audio, simulate_date, generate_speech
 
 
@@ -44,7 +44,8 @@ available_tools = {
 def do_stream(messages: List[ChatCompletionMessageParam]):
     stream = client.chat.completions.create(
         messages=messages,
-        model="gpt-4o",
+        model=ensure_allowed_model("gpt-3.5-turbo"),
+        max_tokens=500,
         stream=True,
         tools=[{
             "type": "function",
@@ -157,7 +158,8 @@ def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'dat
 
     stream = client.chat.completions.create(
         messages=messages,
-        model="gpt-4o",
+        model=ensure_allowed_model("gpt-3.5-turbo"),
+        max_tokens=500,
         stream=True,
         tools=[{
             "type": "function",
@@ -348,8 +350,8 @@ async def upload_audio(file: UploadFile = File(...)):
 
 class TextToSpeechRequest(BaseModel):
     text: str
-    voice: str = "nova"  # Default voice
-    use_advanced_model: bool = False  # Whether to use the advanced GPT-4o audio models
+    voice: str = "alloy"
+    use_advanced_model: bool = False  # Whether to use the advanced GPT-3.5 audio models
 
 @app.post("/api/text-to-speech")
 async def text_to_speech(request: TextToSpeechRequest):

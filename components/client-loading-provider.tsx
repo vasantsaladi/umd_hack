@@ -2,6 +2,7 @@
 
 import { FC, ReactNode, useState, useEffect } from "react";
 import { LoadingAnimation } from "./loading-animation";
+import { AnimatePresence } from "framer-motion";
 
 interface ClientLoadingProviderProps {
   children: ReactNode;
@@ -16,15 +17,19 @@ export const ClientLoadingProvider: FC<ClientLoadingProviderProps> = ({
     setIsLoading(false);
   };
 
-  // Force loading state to be true on initial render
+  // Force loading screen to show briefly
   useEffect(() => {
-    setIsLoading(true);
+    const timer = setTimeout(() => {
+      handleLoadingComplete();
+    }, 6000); // Ensure it completes after 6 seconds max
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <>
-      <LoadingAnimation onComplete={handleLoadingComplete} />
-      {children}
+      {isLoading && <LoadingAnimation onComplete={handleLoadingComplete} />}
+      {!isLoading && children}
     </>
   );
 };

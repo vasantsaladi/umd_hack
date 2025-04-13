@@ -57,7 +57,10 @@ export const PreviewMessage = ({
                       {toolName === "get_current_weather" ? (
                         <Weather weatherAtLocation={result} />
                       ) : toolName === "evaluate_rizz" ? (
-                        <RizzEvaluation rizzResult={result} />
+                        <RizzEvaluation
+                          evaluationResult={result}
+                          userInput={result.message || ""}
+                        />
                       ) : toolName === "generate_rizz_image" ? (
                         <RizzImage
                           imageUrl={result.url}
@@ -99,7 +102,18 @@ export const PreviewMessage = ({
                     {toolName === "get_current_weather" ? (
                       <Weather />
                     ) : toolName === "evaluate_rizz" ? (
-                      <RizzEvaluation isLoading={true} />
+                      <RizzEvaluation
+                        isLoading={true}
+                        evaluationResult={{
+                          score: 0,
+                          feedback: "",
+                          strengths: [],
+                          improvements: [],
+                          category: "",
+                          emojis: [],
+                        }}
+                        userInput=""
+                      />
                     ) : toolName === "generate_rizz_image" ? (
                       <RizzImage isLoading={true} imageUrl="" prompt="" />
                     ) : toolName === "simulate_date" ? (

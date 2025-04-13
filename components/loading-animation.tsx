@@ -11,59 +11,61 @@ interface LoadingAnimationProps {
 }
 
 export const LoadingAnimation: FC<LoadingAnimationProps> = ({ onComplete }) => {
-  const [isComplete, setIsComplete] = useState(false);
-  const { toggle, isPlaying, initializeAudio } = useMusic();
+  const { isPlaying, toggle, initializeAudio } = useMusic();
   const [loadingStep, setLoadingStep] = useState(0);
+  const [allowContinue, setAllowContinue] = useState(false);
 
-  // Try to initialize audio as soon as possible
+  // Initialize music but don't block on it
   useEffect(() => {
-    // Immediately try to initialize audio
     initializeAudio();
 
-    // Create a sequence of loading steps to give more chances for audio to play
+    // Always proceed after short delay regardless of music state
+    const timer = setTimeout(() => {
+      setAllowContinue(true);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [initializeAudio]);
+
+  // Loading steps animation
+  useEffect(() => {
     const stepTimers = [
+      setTimeout(() => setLoadingStep(1), 1500),
+      setTimeout(() => setLoadingStep(2), 3000),
+      // Allow transition to complete page after a reasonable time
+      // regardless of music playing state
       setTimeout(() => {
-        setLoadingStep(1);
-        // Try again to initialize audio
-        if (!isPlaying) {
-          toggle();
-        }
-      }, 500),
-
-      setTimeout(() => {
-        setLoadingStep(2);
-        // Third attempt to play audio
-        if (!isPlaying) {
-          toggle();
-        }
-      }, 1500),
-
-      setTimeout(() => {
-        setIsComplete(true);
-        if (onComplete) {
+        if (onComplete && allowContinue) {
           onComplete();
         }
-      }, 3000),
+      }, 4000),
     ];
 
-    return () => {
-      stepTimers.forEach((timer) => clearTimeout(timer));
-    };
-  }, [onComplete, toggle, isPlaying, initializeAudio]);
+    return () => stepTimers.forEach((timer) => clearTimeout(timer));
+  }, [onComplete, allowContinue]);
 
-  if (isComplete) {
-    return null;
-  }
+  // Just in case everything else fails, this is our backup
+  useEffect(() => {
+    // Force completion after max wait time
+    const maxWaitTimer = setTimeout(() => {
+      if (onComplete) {
+        console.log("Forcing completion after maximum wait time");
+        onComplete();
+      }
+    }, 8000); // Hard timeout of 8 seconds max
 
+    return () => clearTimeout(maxWaitTimer);
+  }, [onComplete]);
+
+  // Don't return null - always show loading screen until complete callback is called
   return (
     <motion.div
-      key="loading"
-      initial={{ opacity: 1 }}
+      className="fixed inset-0 flex flex-col items-center justify-center bg-gray-900 z-50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed inset-0 flex items-center justify-center bg-background z-50"
     >
-      <div className="flex flex-col items-center gap-6">
+      <div className="max-w-xs mx-auto text-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

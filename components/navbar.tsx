@@ -8,17 +8,52 @@ import { useMusic } from "@/lib/music-context";
 import { useEffect } from "react";
 
 export const Navbar = () => {
-  const { initializeAudio } = useMusic();
+  const { initializeAudio, toggle, isPlaying } = useMusic();
 
-  // Try to initialize audio when component mounts
+  // Try to initialize audio when component mounts - now more aggressive
   useEffect(() => {
-    // Small timeout to ensure the component is fully mounted
-    const timer = setTimeout(() => {
-      initializeAudio();
-    }, 1000);
+    console.log("Navbar: Attempting to initialize audio on mount");
 
-    return () => clearTimeout(timer);
-  }, [initializeAudio]);
+    // Immediate attempt
+    initializeAudio();
+
+    // Staggered attempts with increasing delays
+    [500, 1500, 3000, 6000].forEach((delay) => {
+      setTimeout(() => {
+        console.log(`Navbar: Attempting initialization after ${delay}ms`);
+        initializeAudio();
+
+        // If still not playing, try to toggle
+        if (!isPlaying) {
+          console.log(`Navbar: Forcing toggle after ${delay}ms`);
+          toggle();
+        }
+      }, delay);
+    });
+  }, [initializeAudio, toggle, isPlaying]);
+
+  // Add a user interaction listener for iOS/Safari browsers
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      console.log("Navbar: User interaction detected");
+      // Try both initializing and toggling on interaction
+      initializeAudio();
+      if (!isPlaying) {
+        toggle();
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener("click", handleUserInteraction, { once: true });
+    document.addEventListener("touchstart", handleUserInteraction, {
+      once: true,
+    });
+
+    return () => {
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
+    };
+  }, [initializeAudio, toggle, isPlaying]);
 
   return (
     <div className="p-3 flex flex-row gap-2 justify-between items-center border-b border-gray-800/30">

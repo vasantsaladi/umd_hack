@@ -16,7 +16,7 @@ interface MusicContextType {
   setVolume: (volume: number) => void;
   pauseDuringAction: () => void;
   resumeAfterAction: () => void;
-  initializeAudio: () => void;
+  initializeAudio: () => Promise<boolean>;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -25,126 +25,59 @@ export const MusicProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.5); // Higher default volume
+  const [volume, setVolume] = useState(0.7);
   const [wasPlayingBeforePause, setWasPlayingBeforePause] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const hasInitializedRef = useRef(false);
-  const autoPlayAttemptedRef = useRef(false);
+  const userInteractionRef = useRef(false);
 
-  // Try to auto-start immediately when mounted - this happens on page load
+  // Create audio element only once
   useEffect(() => {
-    // Create the audio element immediately
     if (!audioRef.current) {
-      const audio = new Audio("/careless-whisper.mp3");
-      audioRef.current = audio;
-      audio.loop = true;
-      audio.volume = volume;
-      audio.preload = "auto";
+      console.log("Creating audio element with careless-whisper.mp3");
+      try {
+        const audioElement = new Audio("/careless-whisper.mp3");
+        audioElement.loop = true;
+        audioElement.volume = volume;
+        audioElement.preload = "auto";
+        audioRef.current = audioElement;
 
-      // Add event listeners for more robust looping
-      audio.addEventListener("canplaythrough", () => {
-        if (!autoPlayAttemptedRef.current) {
-          autoPlayAttemptedRef.current = true;
-          // Try to autoplay
-          audio
-            .play()
-            .then(() => {
-              setIsPlaying(true);
-              setIsInitialized(true);
-              hasInitializedRef.current = true;
-            })
-            .catch((err) => {
-              console.log(
-                "Autoplay prevented by browser, waiting for interaction"
-              );
-            });
-        }
-      });
-
-      // Add event listeners for more robust looping
-      audio.addEventListener("ended", () => {
-        // Even though loop is true, manually restart playback as a fallback
-        if (isPlaying) {
-          audio.currentTime = 0;
-          audio
-            .play()
-            .catch((err) => console.error("Loop playback error:", err));
-        }
-      });
-
-      // Add error recovery
-      audio.addEventListener("error", () => {
-        console.error("Audio playback error, attempting recovery");
-        // Try to recreate and replay after error
-        setTimeout(() => {
-          if (isPlaying) {
-            const newAudio = new Audio("/careless-whisper.mp3");
-            newAudio.loop = true;
-            newAudio.volume = volume;
-            audioRef.current = newAudio;
-            newAudio.play().catch((e) => console.error("Recovery failed:", e));
-          }
-        }, 1000);
-      });
-
-      // Load the audio
-      audio.load();
-    }
-
-    // Handle cleanup
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-  }, [volume, isPlaying]);
-
-  // Initialize audio but don't autoplay immediately
-  const initializeAudio = () => {
-    // If already initialized or no audio ref, do nothing
-    if (hasInitializedRef.current || !audioRef.current) return;
-    hasInitializedRef.current = true;
-
-    try {
-      const audio = audioRef.current;
-
-      // Try to play the audio
-      audio
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-          setIsInitialized(true);
-        })
-        .catch((error) => {
-          console.error("Audio playback prevented by browser:", error);
-          // We'll try again on user interaction
+        // Add error handling
+        audioElement.addEventListener("error", (e) => {
+          console.error("Audio error event:", e);
+          // Don't recreate here - just log the error
         });
-    } catch (error) {
-      console.error("Error initializing audio:", error);
-    }
-  };
 
-  // Make sure we handle user interaction to play audio
+        // Handle ended more simply
+        audioElement.addEventListener("ended", () => {
+          if (isPlaying && audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current
+              .play()
+              .catch((e) => console.error("Loop play failed:", e));
+          }
+        });
+      } catch (error) {
+        console.error("Error creating audio element:", error);
+      }
+    }
+
+    // No return cleanup function here - we want to keep the audio element
+  }, []);
+
+  // Update volume when it changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  // Listen for user interaction - this is critical for iOS/Safari
   useEffect(() => {
     const handleUserInteraction = () => {
-      if (!isPlaying && audioRef.current) {
-        audioRef.current
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-            setIsInitialized(true);
-            hasInitializedRef.current = true;
-          })
-          .catch((err) => console.error("Play failed after interaction:", err));
-      }
-
-      // Remove event listeners after successful play
-      if (isPlaying) {
-        document.removeEventListener("click", handleUserInteraction);
-        document.removeEventListener("touchstart", handleUserInteraction);
-        document.removeEventListener("keydown", handleUserInteraction);
-      }
+      userInteractionRef.current = true;
+      // Don't auto-play on interaction, just mark that interaction happened
     };
 
     // Add event listeners to capture user interactions
@@ -157,68 +90,52 @@ export const MusicProvider: React.FC<{ children: ReactNode }> = ({
       document.removeEventListener("touchstart", handleUserInteraction);
       document.removeEventListener("keydown", handleUserInteraction);
     };
-  }, [isPlaying]);
+  }, []);
 
   // Handle play/pause based on isPlaying state
   useEffect(() => {
     if (!audioRef.current) return;
 
     if (isPlaying) {
-      // Add slight delay for better UX
+      console.log("Attempting to play audio");
       const playPromise = audioRef.current.play();
 
-      // Handle promise to avoid browser warnings
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          console.error("Audio playback prevented by browser:", error);
-          // Auto-retry once after user interaction
-          const retryPlay = () => {
-            if (audioRef.current) {
-              audioRef.current
-                .play()
-                .then(() => {
-                  setIsInitialized(true);
-                })
-                .catch((e) => console.error("Retry play failed:", e));
-            }
-            document.removeEventListener("click", retryPlay);
-          };
-          document.addEventListener("click", retryPlay, { once: true });
+          console.error("Audio playback prevented:", error);
+          setIsPlaying(false); // Reset state if play fails
         });
       }
-    } else if (audioRef.current) {
+    } else {
       audioRef.current.pause();
     }
   }, [isPlaying]);
 
-  // Update volume when it changes
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
-
   const toggle = () => {
-    if (!hasInitializedRef.current && audioRef.current) {
-      // Initialize and play
-      audioRef.current
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-          setIsInitialized(true);
-          hasInitializedRef.current = true;
-        })
-        .catch((error) => {
-          console.error("Play failed on toggle:", error);
-        });
-    } else {
-      setIsPlaying((prev) => !prev);
+    if (audioRef.current) {
+      if (!isPlaying) {
+        // Try to play
+        audioRef.current
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+            setIsInitialized(true);
+            hasInitializedRef.current = true;
+          })
+          .catch((error) => {
+            console.error("Toggle play failed:", error);
+            setIsPlaying(false);
+          });
+      } else {
+        // Just pause
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
     }
   };
 
   // Pause music during speech or simulation
   const pauseDuringAction = () => {
-    // Remember if music was playing before we paused it
     if (isPlaying) {
       setWasPlayingBeforePause(true);
       setIsPlaying(false);
@@ -230,6 +147,25 @@ export const MusicProvider: React.FC<{ children: ReactNode }> = ({
     if (wasPlayingBeforePause) {
       setIsPlaying(true);
       setWasPlayingBeforePause(false);
+    }
+  };
+
+  // Initialize audio but don't force autoplay
+  const initializeAudio = async (): Promise<boolean> => {
+    // If already initialized and playing, just return success
+    if (isInitialized && isPlaying) return true;
+    hasInitializedRef.current = true;
+
+    // If no audio ref, initialization failed
+    if (!audioRef.current) return false;
+
+    try {
+      // Just prepare the audio but don't autoplay
+      setIsInitialized(true);
+      return userInteractionRef.current; // Return whether user has interacted
+    } catch (error) {
+      console.error("Error initializing audio:", error);
+      return false;
     }
   };
 
