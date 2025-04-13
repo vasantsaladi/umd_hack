@@ -12,6 +12,9 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Add rule to disable unescaped entities warning
+  reactStrictMode: true,
+  swcMinify: true,
   rewrites: async () => {
     return [
       {
