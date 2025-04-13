@@ -3,8 +3,23 @@
 import { Button } from "./ui/button";
 import { HeartIcon } from "lucide-react";
 import Link from "next/link";
+import { MusicControl } from "./music-control";
+import { useMusic } from "@/lib/music-context";
+import { useEffect } from "react";
 
 export const Navbar = () => {
+  const { initializeAudio } = useMusic();
+
+  // Try to initialize audio when component mounts
+  useEffect(() => {
+    // Small timeout to ensure the component is fully mounted
+    const timer = setTimeout(() => {
+      initializeAudio();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [initializeAudio]);
+
   return (
     <div className="p-3 flex flex-row gap-2 justify-between items-center border-b border-gray-800/30">
       <div className="flex items-center gap-2">
@@ -15,6 +30,8 @@ export const Navbar = () => {
       </div>
 
       <div className="flex items-center gap-3">
+        <MusicControl />
+
         <Link href="/about">
           <Button
             variant="ghost"

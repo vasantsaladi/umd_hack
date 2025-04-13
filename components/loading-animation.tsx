@@ -2,8 +2,9 @@
 
 import { FC, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { HeartIcon } from "lucide-react";
+import { HeartIcon, Music, VolumeX, Volume2 } from "lucide-react";
 import { useMusic } from "@/lib/music-context";
+import { Button } from "./ui/button";
 
 interface LoadingAnimationProps {
   onComplete?: () => void;
@@ -11,28 +12,44 @@ interface LoadingAnimationProps {
 
 export const LoadingAnimation: FC<LoadingAnimationProps> = ({ onComplete }) => {
   const [isComplete, setIsComplete] = useState(false);
-  const { toggle, isPlaying } = useMusic();
+  const { toggle, isPlaying, initializeAudio } = useMusic();
+  const [loadingStep, setLoadingStep] = useState(0);
 
+  // Try to initialize audio as soon as possible
   useEffect(() => {
-    // Start the animation sequence
-    const animationTimer = setTimeout(() => {
-      setIsComplete(true);
+    // Immediately try to initialize audio
+    initializeAudio();
 
-      // Start playing the background music when animation completes
-      // Only toggle if music isn't already playing
-      if (!isPlaying) {
-        toggle();
-      }
+    // Create a sequence of loading steps to give more chances for audio to play
+    const stepTimers = [
+      setTimeout(() => {
+        setLoadingStep(1);
+        // Try again to initialize audio
+        if (!isPlaying) {
+          toggle();
+        }
+      }, 500),
 
-      if (onComplete) {
-        onComplete();
-      }
-    }, 3000); // 3 seconds loading time
+      setTimeout(() => {
+        setLoadingStep(2);
+        // Third attempt to play audio
+        if (!isPlaying) {
+          toggle();
+        }
+      }, 1500),
+
+      setTimeout(() => {
+        setIsComplete(true);
+        if (onComplete) {
+          onComplete();
+        }
+      }, 3000),
+    ];
 
     return () => {
-      clearTimeout(animationTimer);
+      stepTimers.forEach((timer) => clearTimeout(timer));
     };
-  }, [onComplete, toggle, isPlaying]);
+  }, [onComplete, toggle, isPlaying, initializeAudio]);
 
   if (isComplete) {
     return null;
@@ -109,7 +126,38 @@ export const LoadingAnimation: FC<LoadingAnimationProps> = ({ onComplete }) => {
               />
             ))}
           </div>
-          <p className="text-muted-foreground text-sm">Setting the mood...</p>
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-muted-foreground text-sm">
+              {loadingStep === 0
+                ? "Loading..."
+                : loadingStep === 1
+                ? "Setting the mood..."
+                : "Preparing your rizz experience..."}
+            </p>
+
+            <Button
+              onClick={toggle}
+              variant="outline"
+              className="rounded-full flex items-center gap-1.5 px-3 py-1.5 mt-2 bg-pink-500/30 hover:bg-pink-500/40 border border-pink-500/30 animate-pulse"
+              title={isPlaying ? "Mute music" : "Play music"}
+            >
+              {isPlaying ? (
+                <>
+                  <Volume2 size={16} className="text-white" />
+                  <span className="text-sm font-medium text-white">
+                    Music Playing
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Music size={16} className="text-white" />
+                  <span className="text-sm font-medium text-white">
+                    Click to Play Music
+                  </span>
+                </>
+              )}
+            </Button>
+          </div>
         </motion.div>
       </div>
     </motion.div>

@@ -17,7 +17,17 @@ import { Button } from "./ui/button";
 import { useMusic } from "@/lib/music-context";
 
 export const Overview = () => {
-  const { isPlaying, toggle } = useMusic();
+  const { isPlaying, toggle, initializeAudio } = useMusic();
+
+  // Initialize audio when Overview component mounts
+  useEffect(() => {
+    // Small delay to ensure browser is ready
+    const timer = setTimeout(() => {
+      initializeAudio();
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [initializeAudio]);
 
   return (
     <motion.div
